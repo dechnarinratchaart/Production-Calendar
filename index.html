@@ -674,11 +674,12 @@ async function refreshData() {
       const data = await fetchJSON(url);
       const items = (data.items || [])
         .map(ev => ({ ...ev, _calId: calId }))
-        .filter(ev => getHeartEmoji(ev.summary || '') !== null);
+        .filter(ev => getHeartsFromTitle(ev.summary || '').length > 0);
       allEvents.push(...items);
     } catch(e) { console.warn('Error fetching', calId, e); }
   }
 
+  allEvents = expandEvents(allEvents);
   assignMemberColors();
   renderCalendar();
   renderSidebar();
@@ -686,16 +687,39 @@ async function refreshData() {
 }
 
 // ===== COLOR ASSIGNMENT =====
+function getHeartsFromTitle(title) {
+  if (!title) return [];
+  const hearts = Object.keys(HEART_MAP);
+  return hearts.filter(h => title.includes(h));
+}
+
 function getMemberKey(ev) {
+  if (ev._heartKey) return ev._heartKey;
   const heart = getHeartEmoji(ev.summary || '');
   if (heart) return heart;
   return (ev.organizer?.email || ev.creator?.email || ev._calId || 'unknown').toLowerCase();
 }
 
 function getMemberName(ev) {
-  const heart = getHeartEmoji(ev.summary || '');
-  if (heart && HEART_MAP[heart]) return HEART_MAP[heart].name;
+  const key = ev._heartKey || getHeartEmoji(ev.summary || '');
+  if (key && HEART_MAP[key]) return HEART_MAP[key].name;
   return ev.organizer?.displayName || ev.creator?.displayName || ev.summary?.split('|')[0]?.trim() || ev._calId || 'ไม่ระบุ';
+}
+
+// Expand events with multiple hearts into one entry per person
+function expandEvents(events) {
+  const expanded = [];
+  for (const ev of events) {
+    const hearts = getHeartsFromTitle(ev.summary || '');
+    if (hearts.length <= 1) {
+      expanded.push(ev);
+    } else {
+      for (const h of hearts) {
+        expanded.push({ ...ev, _heartKey: h });
+      }
+    }
+  }
+  return expanded;
 }
 
 function assignMemberColors() {
