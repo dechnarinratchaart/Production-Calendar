@@ -680,11 +680,11 @@ async function refreshData() {
     } catch(e) { console.warn('Error fetching', calId, e); }
   }
 
-  allEvents = expandEvents(allEvents);
+  const expandedEvents = expandEvents(allEvents);
   assignMemberColors();
-  renderCalendar();
-  renderSidebar();
-  renderSummary();
+  renderCalendar(allEvents);
+  renderSidebar(expandedEvents);
+  renderSummary(expandedEvents);
 }
 
 // ===== COLOR ASSIGNMENT =====
@@ -707,7 +707,7 @@ function getMemberName(ev) {
   return ev.organizer?.displayName || ev.creator?.displayName || ev.summary?.split('|')[0]?.trim() || ev._calId || 'ไม่ระบุ';
 }
 
-// Expand events with multiple hearts into one entry per person
+// Expand events with multiple hearts into one entry per person (for summary only)
 function expandEvents(events) {
   const expanded = [];
   for (const ev of events) {
@@ -716,7 +716,7 @@ function expandEvents(events) {
       expanded.push(ev);
     } else {
       for (const h of hearts) {
-        expanded.push({ ...ev, _heartKey: h });
+        expanded.push({ ...ev, _heartKey: h, _multiHeart: true });
       }
     }
   }
@@ -736,7 +736,8 @@ function assignMemberColors() {
 }
 
 // ===== RENDER CALENDAR =====
-function renderCalendar() {
+function renderCalendar(eventsToShow) {
+  eventsToShow = eventsToShow || allEvents;
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const today = new Date();
@@ -751,7 +752,7 @@ function renderCalendar() {
   const daysInPrev = new Date(year, month, 0).getDate();
 
   const eventsByDate = {};
-  allEvents.forEach(ev => {
+  eventsToShow.forEach(ev => {
     const start = ev.start?.dateTime || ev.start?.date;
     if (!start) return;
     const d = start.substring(0,10);
@@ -823,9 +824,10 @@ function getEventHours(ev) {
 }
 
 // ===== RENDER SIDEBAR MEMBER LIST =====
-function renderSidebar() {
+function renderSidebar(eventsToUse) {
+  eventsToUse = eventsToUse || allEvents;
   const memberMap = {};
-  allEvents.forEach(ev => {
+  eventsToUse.forEach(ev => {
     const k = getMemberKey(ev);
     if (!memberMap[k]) memberMap[k] = { name: getMemberName(ev), key: k, events: [] };
     memberMap[k].events.push(ev);
@@ -847,7 +849,7 @@ function renderSidebar() {
   document.getElementById('member-list').innerHTML = html || '<div style="font-size:13px;color:var(--text2);padding:4px 8px;">ยังไม่มีข้อมูล</div>';
 
   renderFilterChips(members);
-  renderMonthStats(members);
+  renderMonthStats(members, eventsToUse);
 }
 
 function renderFilterChips(members) {
@@ -859,9 +861,10 @@ function renderFilterChips(members) {
   }).join('');
 }
 
-function renderMonthStats(members) {
+function renderMonthStats(members, eventsToUse) {
+  eventsToUse = eventsToUse || allEvents;
   let wd=0, wk=0, ph=0, hrs=0;
-  allEvents.forEach(ev => {
+  eventsToUse.forEach(ev => {
     const start = ev.start?.dateTime || ev.start?.date;
     if (!start) return;
     const d = new Date(start.substring(0,10)+'T00:00:00');
@@ -880,9 +883,10 @@ function renderMonthStats(members) {
 }
 
 // ===== RENDER SUMMARY TABLE =====
-function renderSummary() {
+function renderSummary(eventsToUse) {
+  eventsToUse = eventsToUse || allEvents;
   const memberMap = {};
-  allEvents.forEach(ev => {
+  eventsToUse.forEach(ev => {
     const k = getMemberKey(ev);
     if (!memberMap[k]) memberMap[k] = { name: getMemberName(ev), key: k, wd:0, wk:0, ph:0, hrs:0 };
     const start = ev.start?.dateTime || ev.start?.date;
@@ -920,8 +924,8 @@ function renderSummary() {
 function toggleMember(key) {
   if (hiddenMembers.has(key)) hiddenMembers.delete(key);
   else hiddenMembers.add(key);
-  renderCalendar();
-  renderSidebar();
+  renderCalendar(allEvents);
+  renderSidebar(expandEvents(allEvents));
 }
 
 // ===== MONTH NAV =====
