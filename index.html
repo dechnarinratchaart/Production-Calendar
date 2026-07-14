@@ -862,22 +862,24 @@ function renderFilterChips(members) {
 }
 
 function renderMonthStats(members, eventsToUse) {
-  eventsToUse = eventsToUse || allEvents;
-  let wd=0, wk=0, ph=0, hrs=0;
-  eventsToUse.forEach(ev => {
+  // Use original allEvents (not expanded) to count unique dates per day type
+  const baseEvents = allEvents;
+  const seenDates = { weekday: new Set(), weekend: new Set(), holiday: new Set() };
+  const hrsPerDate = {};
+  baseEvents.forEach(ev => {
     const start = ev.start?.dateTime || ev.start?.date;
     if (!start) return;
-    const d = new Date(start.substring(0,10)+'T00:00:00');
+    const dk = start.substring(0,10);
+    const d = new Date(dk+'T00:00:00');
     const t = getDayType(d);
-    if (t === 'weekday') wd++;
-    else if (t === 'weekend') wk++;
-    else ph++;
-    hrs += getEventHours(ev);
+    seenDates[t].add(dk);
+    if (!hrsPerDate[dk]) hrsPerDate[dk] = getEventHours(ev);
   });
+  const hrs = Object.values(hrsPerDate).reduce((s,h) => s+h, 0);
   document.getElementById('month-stats').innerHTML = `
-    <div class="stat-mini"><div class="val">${wd}</div><div class="lbl">วันธรรมดา</div></div>
-    <div class="stat-mini"><div class="val">${wk}</div><div class="lbl">เสาร์-อาทิตย์</div></div>
-    <div class="stat-mini"><div class="val">${ph}</div><div class="lbl">นักขัตฤกษ์</div></div>
+    <div class="stat-mini"><div class="val">${seenDates.weekday.size}</div><div class="lbl">วันธรรมดา</div></div>
+    <div class="stat-mini"><div class="val">${seenDates.weekend.size}</div><div class="lbl">เสาร์-อาทิตย์</div></div>
+    <div class="stat-mini"><div class="val">${seenDates.holiday.size}</div><div class="lbl">นักขัตฤกษ์</div></div>
     <div class="stat-mini"><div class="val">${hrs.toFixed(0)}</div><div class="lbl">ชม. รวม</div></div>
   `;
 }
