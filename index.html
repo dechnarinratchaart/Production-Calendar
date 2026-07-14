@@ -178,12 +178,13 @@
   }
   .cal-day-label.weekend { color: #c0392b; }
   .cal-weeks { }
-  .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); min-width: 0; }
   .cal-cell {
     border-right: 0.5px solid var(--border);
     border-bottom: 0.5px solid var(--border);
-    min-height: 90px; padding: 4px;
+    height: 110px; padding: 4px;
     vertical-align: top; position: relative;
+    overflow: hidden;
   }
   .cal-cell:nth-child(7n) { border-right: none; }
   .cal-cell.other-month .day-num { color: var(--text3); }
@@ -201,8 +202,8 @@
     border-radius: 4px; padding: 2px 5px;
     font-size: 10px; font-weight: 500; margin-bottom: 2px;
     cursor: pointer; white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis; max-width: 100%;
-    transition: opacity 0.1s;
+    text-overflow: ellipsis; width: 100%; display: block;
+    transition: opacity 0.1s; box-sizing: border-box;
   }
   .event-chip:hover { opacity: 0.8; }
 
